@@ -1,10 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import 'leaflet/dist/leaflet.css';
 import { buildDemoRouteAlternatives } from './lib/routeAlternatives';
 import { formatMinutes } from './lib/costModel';
+import { fetchRouteAlternatives, geocodePlace, type GeocodedPlace, type RouteGeometry } from './lib/routingService';
+import { buildScoredRouteOptions, type ScoredRouteOption } from './lib/realRouteOptions';
+import { RouteMap } from './components/RouteMap';
 import './styles.css';
 
-const clampNumber = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+const clampNumber = (value: number, min: number, max: number) => Math.max(min, Math.min(max, Number.isFinite(value) ? value : min));
 
 function NumberField({ label, value, suffix, min, max, step, onChange }: {
   label: string;
@@ -47,8 +51,13 @@ function App() {
   const [baseDistance, setBaseDistance] = useState(320);
   const [manualToll, setManualToll] = useState(28);
   const [selected, setSelected] = useState('Équilibré');
+  const [fromPlace, setFromPlace] = useState<GeocodedPlace | undefined>();
+  const [toPlace, setToPlace] = useState<GeocodedPlace | undefined>();
+  const [realRoutes, setRealRoutes] = useState<RouteGeometry[]>([]);
+  const [isRouting, setIsRouting] = useState(false);
+  const [routeError, setRouteError] = useState<string | undefined>();
 
-  const alternatives = useMemo(() => buildDemoRouteAlternatives({
+  const demoAlternatives = useMemo(() => buildDemoRouteAlternatives({
     baseDistanceKm: baseDistance,
     motorwaySpeedKmh: motorwaySpeed,
     roadSpeedKmh: roadSpeed,
@@ -60,13 +69,42 @@ function App() {
     manualTollCost: manualToll,
   }), [baseDistance, motorwaySpeed, roadSpeed, citySpeed, consumption, fuelPrice, pauseCount, pauseDuration, manualToll]);
 
+  const realAlternatives = useMemo(() => buildScoredRouteOptions({
+    routes: realRoutes,
+    consumptionLPer100Km: consumption,
+    fuelPricePerLiter: fuelPrice,
+    pauseCount,
+    pauseDurationMinutes: pauseDuration,
+    manualTollCost: manualToll,
+  }), [consumption, fuelPrice, manualToll, pauseCount, pauseDuration, realRoutes]);
+
+  const alternatives = realAlternatives.length ? realAlternatives : demoAlternatives;
   const chosen = alternatives.find((route) => route.name === selected) ?? alternatives[0];
+  const selectedMapRoute = realRoutes[alternatives.findIndex((route) => route.name === chosen.name)] ?? realRoutes[0];
+
+  async function calculateRealRoute() {
+    setIsRouting(true);
+    setRouteError(undefined);
+    try {
+      const [from, to] = await Promise.all([geocodePlace(departure), geocodePlace(arrival)]);
+      const routes = await fetchRouteAlternatives(from, to);
+      setFromPlace(from);
+      setToPlace(to);
+      setRealRoutes(routes);
+      setBaseDistance(routes[0]?.distanceKm ?? baseDistance);
+      setSelected('Rapide');
+    } catch (error) {
+      setRouteError(error instanceof Error ? error.message : 'Erreur inconnue pendant le calcul');
+    } finally {
+      setIsRouting(false);
+    }
+  }
 
   return (
     <main className="app-shell">
       <section className="hero">
         <div>
-          <p className="eyebrow">Prototype MVP</p>
+          <p className="eyebrow">Prototype testable</p>
           <h1>Route Éco</h1>
           <p>Compare le vrai temps et le vrai coût selon ta voiture, ta vitesse, tes pauses et ton choix de route.</p>
         </div>
@@ -77,7 +115,7 @@ function App() {
       </section>
 
       <section className="planner-card">
-        <h2>Trajet</h2>
+        <h2>Trajet réel</h2>
         <div className="grid two">
           <label className="field">
             <span>Départ</span>
@@ -88,13 +126,14 @@ function App() {
             <input value={arrival} onChange={(event) => setArrival(event.target.value)} />
           </label>
         </div>
-        <div className="map-preview">
-          <div className="route-line" />
-          <button className="waypoint start">{departure.slice(0, 1).toUpperCase()}</button>
-          <button className="waypoint mid" title="Point de passage déplaçable dans la vraie version">+</button>
-          <button className="waypoint end">{arrival.slice(0, 1).toUpperCase()}</button>
-          <p>Carte simplifiée — prochaine étape : vraie carte OSM + point de passage déplaçable.</p>
+        <div className="route-actions">
+          <button className="primary-action" onClick={calculateRealRoute} disabled={isRouting}>
+            {isRouting ? 'Calcul en cours…' : 'Calculer avec OpenStreetMap'}
+          </button>
+          <span>{realRoutes.length ? `${realRoutes.length} itinéraire(s) réel(s) trouvé(s)` : 'Mode démo tant qu’aucun calcul réel n’est lancé'}</span>
         </div>
+        {routeError && <p className="error-box">{routeError}</p>}
+        <RouteMap routes={realRoutes} selectedRouteName={selectedMapRoute?.name} from={fromPlace} to={toPlace} />
       </section>
 
       <section className="planner-card">
@@ -105,8 +144,8 @@ function App() {
           ))}
         </div>
         <div className="grid three">
-          <NumberField label="Conso tableau de bord" value={consumption} suffix="L/100" min={1} max={20} step={0.1} onChange={setConsumption} />
-          <NumberField label="Prix carburant" value={fuelPrice} suffix="€/L" min={0.5} max={4} step={0.01} onChange={setFuelPrice} />
+          <NumberField label="Conso tableau de bord" value={consumption} suffix={vehicleType === 'Électrique' ? 'kWh/100' : 'L/100'} min={1} max={35} step={0.1} onChange={setConsumption} />
+          <NumberField label={vehicleType === 'Électrique' ? 'Prix énergie' : 'Prix carburant'} value={fuelPrice} suffix={vehicleType === 'Électrique' ? '€/kWh' : '€/L'} min={0.1} max={4} step={0.01} onChange={setFuelPrice} />
           <NumberField label="Distance estimée" value={baseDistance} suffix="km" min={5} max={1500} onChange={setBaseDistance} />
         </div>
       </section>
@@ -133,8 +172,11 @@ function App() {
 
       <section className="planner-card">
         <div className="section-title">
-          <h2>Alternatives automatiques</h2>
-          <NumberField label="Péage rapide estimé / manuel" value={manualToll} suffix="€" min={0} max={250} step={0.5} onChange={setManualToll} />
+          <div>
+            <h2>Alternatives automatiques</h2>
+            <p className="muted">{realRoutes.length ? 'Basées sur OSRM/OpenStreetMap.' : 'Mode démo en attendant le calcul réel.'}</p>
+          </div>
+          <NumberField label="Péage estimé / manuel" value={manualToll} suffix="€" min={0} max={250} step={0.5} onChange={setManualToll} />
         </div>
         <div className="routes">
           {alternatives.map((route) => (
@@ -146,7 +188,7 @@ function App() {
               <dl>
                 <div><dt>Temps</dt><dd>{formatMinutes(route.totalMinutes)}</dd></div>
                 <div><dt>Km</dt><dd>{route.distanceKm}</dd></div>
-                <div><dt>Carburant</dt><dd>{route.fuelCost.toFixed(2)} €</dd></div>
+                <div><dt>{vehicleType === 'Électrique' ? 'Énergie' : 'Carburant'}</dt><dd>{route.fuelCost.toFixed(2)} €</dd></div>
                 <div><dt>Péage</dt><dd>{route.tollCost.toFixed(2)} €</dd></div>
                 <div><dt>Total</dt><dd>{route.totalCost.toFixed(2)} €</dd></div>
               </dl>
@@ -156,11 +198,11 @@ function App() {
       </section>
 
       <section className="planner-card conclusion">
-        <h2>Choix recommandé : {chosen.name}</h2>
+        <h2>Choix sélectionné : {chosen.name}</h2>
         <p>
           {departure} → {arrival} : <strong>{formatMinutes(chosen.totalMinutes)}</strong>, <strong>{chosen.distanceKm} km</strong>, coût estimé <strong>{chosen.totalCost.toFixed(2)} €</strong>.
         </p>
-        <p className="muted">Péages : architecture prévue avec OpenTollData/TollGuru + saisie manuelle de secours.</p>
+        <p className="muted">Péages : manuel pour ce prototype. Prochaine étape : fournisseur OpenTollData/TollGuru.</p>
       </section>
     </main>
   );
