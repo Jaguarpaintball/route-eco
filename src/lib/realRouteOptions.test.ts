@@ -23,7 +23,7 @@ describe('real route option builder', () => {
     expect(options[1].name).toBe('Éco');
     expect(options[4].name).toBe('Mon trajet');
     expect(options[0].distanceKm).toBe(100);
-    expect(options[0].totalMinutes).toBe(85);
+    expect(options[0].totalMinutes).toBe(73);
     expect(options[0].fuelCost).toBeCloseTo(10.8);
     expect(options[0].tollCost).toBe(12);
     expect(options[1].tollCost).toBe(3);
@@ -45,5 +45,37 @@ describe('real route option builder', () => {
     expect(options.map((route) => route.name)).toEqual(['Rapide', 'Éco', 'Équilibré', 'Sans péage']);
     expect(options[0].coordinates).toHaveLength(2);
     expect(options[3].tollCost).toBe(0);
+  });
+
+  it('makes motorway speed change real route durations', () => {
+    const slow = buildScoredRouteOptions({
+      routes: [
+        { name: 'Itinéraire principal', distanceKm: 300, drivingMinutes: 180, coordinates: [[45.76, 4.84], [43.3, 5.37]] },
+      ],
+      consumptionLPer100Km: 6.2,
+      fuelPricePerLiter: 1.82,
+      pauseCount: 0,
+      pauseDurationMinutes: 0,
+      manualTollCost: 28,
+      motorwaySpeedKmh: 90,
+      roadSpeedKmh: 80,
+    })[0];
+
+    const fast = buildScoredRouteOptions({
+      routes: [
+        { name: 'Itinéraire principal', distanceKm: 300, drivingMinutes: 180, coordinates: [[45.76, 4.84], [43.3, 5.37]] },
+      ],
+      consumptionLPer100Km: 6.2,
+      fuelPricePerLiter: 1.82,
+      pauseCount: 0,
+      pauseDurationMinutes: 0,
+      manualTollCost: 28,
+      motorwaySpeedKmh: 130,
+      roadSpeedKmh: 80,
+    })[0];
+
+    expect(slow.name).toBe('Rapide');
+    expect(fast.name).toBe('Rapide');
+    expect(slow.drivingMinutes).toBeGreaterThan(fast.drivingMinutes);
   });
 });

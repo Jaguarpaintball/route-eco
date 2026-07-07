@@ -92,7 +92,9 @@ function App() {
         </div>
       </section>
 
-      <section className="planner-card">
+      <div className="planner-layout">
+        <div className="control-panel">
+          <section className="planner-card">
         <h2>Trajet réel</h2>
         <div className="grid two">
           <label className="field">
@@ -166,8 +168,10 @@ function App() {
           <button type="button" onClick={() => { setMotorwayShare(0); setRoadShare(45); setWindingShare(55); }}>Route sinueuse</button>
         </div>
       </section>
+        </div>
 
-      <section className="planner-card">
+        <aside className="results-panel">
+          <section className="planner-card results-card">
         <div className="section-title">
           <div>
             <h2>Alternatives automatiques</h2>
@@ -200,8 +204,10 @@ function App() {
           {departure} → {arrival} : <strong>{formatMinutes(chosen.totalMinutes)}</strong>, <strong>{chosen.distanceKm} km</strong>, coût estimé <strong>{chosen.totalCost.toFixed(2)} €</strong>.
         </p>
         <p className="muted">Péages : manuel pour ce prototype. Prochaine étape : fournisseur OpenTollData/TollGuru.</p>
-      </section>
-    </main>
+        </section>
+        </aside>
+        </div>
+        </main>
   );
 }
 

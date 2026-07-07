@@ -22,16 +22,16 @@ export type ScoredRouteOption = ScoredRoute & {
 type Strategy = {
   name: string;
   distanceFactor: number;
-  timeFactor: number;
   tollFactor: number;
   comfortPenalty: number;
+  mix: RouteMix;
 };
 
 const strategies: Strategy[] = [
-  { name: 'Rapide', distanceFactor: 1, timeFactor: 1, tollFactor: 1, comfortPenalty: 0 },
-  { name: 'Éco', distanceFactor: 0.96, timeFactor: 1.22, tollFactor: 0.25, comfortPenalty: 3 },
-  { name: 'Équilibré', distanceFactor: 0.98, timeFactor: 1.12, tollFactor: 0.55, comfortPenalty: 1.5 },
-  { name: 'Sans péage', distanceFactor: 0.95, timeFactor: 1.38, tollFactor: 0, comfortPenalty: 4 },
+  { name: 'Rapide', distanceFactor: 1, tollFactor: 1, comfortPenalty: 0, mix: { motorway: 75, road: 20, winding: 5 } },
+  { name: 'Éco', distanceFactor: 0.96, tollFactor: 0.25, comfortPenalty: 3, mix: { motorway: 25, road: 65, winding: 10 } },
+  { name: 'Équilibré', distanceFactor: 0.98, tollFactor: 0.55, comfortPenalty: 1.5, mix: { motorway: 45, road: 45, winding: 10 } },
+  { name: 'Sans péage', distanceFactor: 0.95, tollFactor: 0, comfortPenalty: 4, mix: { motorway: 0, road: 75, winding: 25 } },
 ];
 
 function routeForStrategy(routes: RouteGeometry[], index: number): RouteGeometry {
@@ -49,7 +49,12 @@ export function buildScoredRouteOptions(input: RealRouteOptionInput): ScoredRout
     const route = routeForStrategy(input.routes, index);
     const hasDedicatedGeometry = Boolean(input.routes[index]);
     const distanceKm = hasDedicatedGeometry ? route.distanceKm : adjusted(input.routes[0].distanceKm, strategy.distanceFactor);
-    const drivingMinutes = hasDedicatedGeometry ? route.drivingMinutes : Math.round(input.routes[0].drivingMinutes * strategy.timeFactor);
+    const drivingMinutes = estimateMixedRouteDrivingMinutes({
+      distanceKm,
+      motorwaySpeedKmh: input.motorwaySpeedKmh ?? 120,
+      roadSpeedKmh: input.roadSpeedKmh ?? 80,
+      ...strategy.mix,
+    });
 
     return {
       sourceName: hasDedicatedGeometry ? route.name : `${route.name} simulé ${strategy.name}`,
