@@ -82,20 +82,28 @@ function App() {
     <main className="app-shell">
       <section className="hero">
         <div>
-          <p className="eyebrow">Prototype testable</p>
+          <p className="eyebrow">Calculateur simple et visuel</p>
           <h1>Route Éco</h1>
-          <p>Compare le vrai temps et le vrai coût selon ta voiture, ta vitesse, tes pauses et ton choix de route.</p>
+          <p>Compare en un coup d’œil le temps, le coût et le confort de ton trajet. Tu règles seulement l’essentiel, Route Éco fait le tri.</p>
+          <div className="hero-pills" aria-label="Points forts">
+            <span>Carte réelle</span>
+            <span>Coût carburant</span>
+            <span>Pauses incluses</span>
+            <span>Choix économique</span>
+          </div>
         </div>
         <div className="score-badge">
-          <span>Score</span>
+          <span>Meilleur score</span>
           <strong>{chosen.globalScore}/10</strong>
+          <small>{chosen.name}</small>
         </div>
       </section>
 
       <div className="planner-layout">
         <div className="control-panel">
           <section className="planner-card">
-        <h2>Trajet réel</h2>
+        <div className="card-heading"><span className="step-dot">1</span><h2>Ton trajet</h2></div>
+        <p className="card-help">Indique simplement le départ et l’arrivée. La carte sert à vérifier visuellement le parcours.</p>
         <div className="grid two">
           <label className="field">
             <span>Départ</span>
@@ -117,7 +125,8 @@ function App() {
       </section>
 
       <section className="planner-card">
-        <h2>Profil du jour</h2>
+        <div className="card-heading"><span className="step-dot">2</span><h2>Ta voiture</h2></div>
+        <p className="card-help">Ces valeurs servent à estimer le vrai coût du trajet, pas seulement les kilomètres.</p>
         <div className="tabs" role="tablist">
           {['Thermique', 'Hybride', 'Électrique'].map((type) => (
             <button key={type} className={vehicleType === type ? 'active' : ''} onClick={() => setVehicleType(type)}>{type}</button>
@@ -131,7 +140,8 @@ function App() {
       </section>
 
       <section className="planner-card">
-        <h2>Vitesses et pauses</h2>
+        <div className="card-heading"><span className="step-dot">3</span><h2>Ton rythme</h2></div>
+        <p className="card-help">Choisis ta vitesse autoroute et ton temps de repos : le temps total se met à jour.</p>
         <div className="grid three">
           <NumberField label="Ville max" value={citySpeed} suffix="km/h" min={10} max={60} onChange={setCitySpeed} />
           <NumberField label="Route max" value={roadSpeed} suffix="km/h" min={30} max={110} onChange={setRoadSpeed} />
@@ -154,7 +164,7 @@ function App() {
       </section>
 
       <section className="planner-card">
-        <h2>Composer mon trajet</h2>
+        <div className="card-heading"><span className="step-dot">4</span><h2>Style de route</h2></div>
         <p className="muted">Pour simuler “je prends l’autoroute, puis je sors sur départementale”. Les proportions sont normalisées automatiquement.</p>
         <div className="grid three">
           <NumberField label="Autoroute" value={motorwayShare} suffix="%" min={0} max={100} onChange={setMotorwayShare} />
@@ -174,7 +184,8 @@ function App() {
           <section className="planner-card results-card">
         <div className="section-title">
           <div>
-            <h2>Alternatives automatiques</h2>
+            <p className="eyebrow compact">Résultat instantané</p>
+            <h2>Quelle route choisir ?</h2>
             <p className="muted">{realRoutes.length ? 'Basées sur OSRM/OpenStreetMap.' : 'Mode démo en attendant le calcul réel.'}</p>
           </div>
           <NumberField label="Péage estimé / manuel" value={manualToll} suffix="€" min={0} max={250} step={0.5} onChange={setManualToll} />
