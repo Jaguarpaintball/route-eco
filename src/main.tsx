@@ -4,38 +4,10 @@ import 'leaflet/dist/leaflet.css';
 import { buildDemoRouteAlternatives } from './lib/routeAlternatives';
 import { formatMinutes } from './lib/costModel';
 import { fetchRouteAlternatives, geocodePlace, type GeocodedPlace, type RouteGeometry } from './lib/routingService';
-import { buildScoredRouteOptions, type ScoredRouteOption } from './lib/realRouteOptions';
+import { buildScoredRouteOptions } from './lib/realRouteOptions';
 import { RouteMap } from './components/RouteMap';
+import { NumberField, clampNumber } from './components/NumberField';
 import './styles.css';
-
-const clampNumber = (value: number, min: number, max: number) => Math.max(min, Math.min(max, Number.isFinite(value) ? value : min));
-
-function NumberField({ label, value, suffix, min, max, step, onChange }: {
-  label: string;
-  value: number;
-  suffix?: string;
-  min: number;
-  max: number;
-  step?: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      <div className="input-row">
-        <input
-          type="number"
-          value={value}
-          min={min}
-          max={max}
-          step={step ?? 1}
-          onChange={(event) => onChange(clampNumber(Number(event.target.value), min, max))}
-        />
-        {suffix && <em>{suffix}</em>}
-      </div>
-    </label>
-  );
-}
 
 function App() {
   const [departure, setDeparture] = useState('Lyon');
@@ -155,7 +127,14 @@ function App() {
         <div className="grid three">
           <NumberField label="Ville max" value={citySpeed} suffix="km/h" min={10} max={60} onChange={setCitySpeed} />
           <NumberField label="Route max" value={roadSpeed} suffix="km/h" min={30} max={110} onChange={setRoadSpeed} />
-          <NumberField label="Autoroute max" value={motorwaySpeed} suffix="km/h" min={70} max={140} onChange={setMotorwaySpeed} />
+          <div className="speed-field">
+            <NumberField label="Autoroute max" value={motorwaySpeed} suffix="km/h" min={70} max={140} onChange={setMotorwaySpeed} />
+            <div className="speed-presets" aria-label="Vitesses autoroute rapides">
+              {[110, 120, 130].map((speed) => (
+                <button key={speed} type="button" onClick={() => setMotorwaySpeed(speed)}>{speed}</button>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="pause-box">
           <div>
