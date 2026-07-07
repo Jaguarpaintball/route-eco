@@ -172,7 +172,7 @@ button:hover:not(:disabled) {
 
 .planner-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(370px, 480px);
+  grid-template-columns: 1fr;
   gap: 18px;
   align-items: start;
 }
@@ -183,8 +183,39 @@ button:hover:not(:disabled) {
 }
 
 .results-panel {
-  position: sticky;
-  top: 14px;
+  order: -1;
+  position: static;
+}
+
+.control-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.control-panel .planner-card {
+  margin-top: 0;
+}
+
+.options-heading {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  padding: 4px 4px 0;
+}
+
+.options-heading h2 {
+  margin: 0;
+  color: #0f344d;
+  letter-spacing: -0.035em;
+}
+
+.options-heading p:last-child {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.control-panel .planner-card:nth-of-type(1) {
+  grid-column: 1 / -1;
 }
 
 .planner-card {
@@ -422,7 +453,7 @@ button:hover:not(:disabled) {
 
 .routes {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
   gap: 10px;
 }
 
@@ -477,7 +508,7 @@ button:hover:not(:disabled) {
 
 .route-card dl {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
   margin: 0;
 }
@@ -509,13 +540,8 @@ button:hover:not(:disabled) {
 }
 
 @media (max-width: 1050px) {
-  .planner-layout {
+  .control-panel {
     grid-template-columns: 1fr;
-  }
-
-  .results-panel {
-    position: static;
-    order: -1;
   }
 
   .routes {

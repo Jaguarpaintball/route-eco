@@ -101,6 +101,11 @@ function App() {
 
       <div className="planner-layout">
         <div className="control-panel">
+          <div className="options-heading">
+            <p className="eyebrow compact">Options</p>
+            <h2>Affiner le trajet</h2>
+            <p>Départ, voiture, vitesse, pauses et style de route restent accessibles juste après le choix d’itinéraire.</p>
+          </div>
           <section className="planner-card">
         <div className="card-heading"><span className="step-dot">1</span><h2>Ton trajet</h2></div>
         <p className="card-help">Indique simplement le départ et l’arrivée. La carte sert à vérifier visuellement le parcours.</p>
