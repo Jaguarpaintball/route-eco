@@ -13,11 +13,15 @@ describe('real route option builder', () => {
       pauseCount: 1,
       pauseDurationMinutes: 15,
       manualTollCost: 12,
+      motorwaySpeedKmh: 120,
+      roadSpeedKmh: 80,
+      customMix: { motorway: 50, road: 40, winding: 10 },
     });
 
-    expect(options).toHaveLength(4);
+    expect(options).toHaveLength(5);
     expect(options[0].name).toBe('Rapide');
     expect(options[1].name).toBe('Éco');
+    expect(options[4].name).toBe('Mon trajet');
     expect(options[0].distanceKm).toBe(100);
     expect(options[0].totalMinutes).toBe(85);
     expect(options[0].fuelCost).toBeCloseTo(10.8);

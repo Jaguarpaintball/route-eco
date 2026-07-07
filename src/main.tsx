@@ -6,7 +6,7 @@ import { formatMinutes } from './lib/costModel';
 import { fetchRouteAlternatives, geocodePlace, type GeocodedPlace, type RouteGeometry } from './lib/routingService';
 import { buildScoredRouteOptions } from './lib/realRouteOptions';
 import { RouteMap } from './components/RouteMap';
-import { NumberField, clampNumber } from './components/NumberField';
+import { NumberField } from './components/NumberField';
 import './styles.css';
 
 function App() {
@@ -18,10 +18,12 @@ function App() {
   const [citySpeed, setCitySpeed] = useState(40);
   const [roadSpeed, setRoadSpeed] = useState(75);
   const [motorwaySpeed, setMotorwaySpeed] = useState(120);
-  const [pauseCount, setPauseCount] = useState(1);
-  const [pauseDuration, setPauseDuration] = useState(15);
+  const [restMinutes, setRestMinutes] = useState(30);
   const [baseDistance, setBaseDistance] = useState(320);
   const [manualToll, setManualToll] = useState(28);
+  const [motorwayShare, setMotorwayShare] = useState(50);
+  const [roadShare, setRoadShare] = useState(40);
+  const [windingShare, setWindingShare] = useState(10);
   const [selected, setSelected] = useState('Équilibré');
   const [fromPlace, setFromPlace] = useState<GeocodedPlace | undefined>();
   const [toPlace, setToPlace] = useState<GeocodedPlace | undefined>();
@@ -36,19 +38,23 @@ function App() {
     citySpeedKmh: citySpeed,
     consumptionLPer100Km: consumption,
     fuelPricePerLiter: fuelPrice,
-    pauseCount,
-    pauseDurationMinutes: pauseDuration,
+    pauseCount: restMinutes > 0 ? 1 : 0,
+    pauseDurationMinutes: restMinutes,
     manualTollCost: manualToll,
-  }), [baseDistance, motorwaySpeed, roadSpeed, citySpeed, consumption, fuelPrice, pauseCount, pauseDuration, manualToll]);
+    customMix: { motorway: motorwayShare, road: roadShare, winding: windingShare },
+  }), [baseDistance, motorwaySpeed, roadSpeed, citySpeed, consumption, fuelPrice, restMinutes, manualToll, motorwayShare, roadShare, windingShare]);
 
   const realAlternatives = useMemo(() => buildScoredRouteOptions({
     routes: realRoutes,
     consumptionLPer100Km: consumption,
     fuelPricePerLiter: fuelPrice,
-    pauseCount,
-    pauseDurationMinutes: pauseDuration,
+    pauseCount: restMinutes > 0 ? 1 : 0,
+    pauseDurationMinutes: restMinutes,
     manualTollCost: manualToll,
-  }), [consumption, fuelPrice, manualToll, pauseCount, pauseDuration, realRoutes]);
+    motorwaySpeedKmh: motorwaySpeed,
+    roadSpeedKmh: roadSpeed,
+    customMix: { motorway: motorwayShare, road: roadShare, winding: windingShare },
+  }), [consumption, fuelPrice, manualToll, restMinutes, realRoutes, motorwaySpeed, roadSpeed, motorwayShare, roadShare, windingShare]);
 
   const alternatives = realAlternatives.length ? realAlternatives : demoAlternatives;
   const chosen = alternatives.find((route) => route.name === selected) ?? alternatives[0];
@@ -130,22 +136,34 @@ function App() {
           <div className="speed-field">
             <NumberField label="Autoroute max" value={motorwaySpeed} suffix="km/h" min={70} max={140} onChange={setMotorwaySpeed} />
             <div className="speed-presets" aria-label="Vitesses autoroute rapides">
-              {[110, 120, 130].map((speed) => (
+              {[90, 95, 100, 105, 110, 115, 120, 125, 130].map((speed) => (
                 <button key={speed} type="button" onClick={() => setMotorwaySpeed(speed)}>{speed}</button>
               ))}
             </div>
           </div>
         </div>
-        <div className="pause-box">
-          <div>
-            <span>Pauses</span>
-            <strong>{pauseCount} × {pauseDuration} min</strong>
+        <div className="rest-box">
+          <NumberField label="Temps de repos total" value={restMinutes} suffix="min" min={0} max={480} onChange={setRestMinutes} />
+          <div className="rest-actions">
+            <button type="button" onClick={() => setRestMinutes(Math.max(0, restMinutes - 10))}>-10 min</button>
+            <button type="button" onClick={() => setRestMinutes(restMinutes + 10)}>+10 min</button>
           </div>
-          <button onClick={() => setPauseCount(Math.max(0, pauseCount - 1))}>- pause</button>
-          <button onClick={() => setPauseCount(pauseCount + 1)}>+ pause</button>
-          <button onClick={() => setPauseDuration(Math.max(0, pauseDuration - 10))}>-10 min</button>
-          <button onClick={() => setPauseDuration(pauseDuration + 10)}>+10 min</button>
-          <input aria-label="Durée pause" type="number" value={pauseDuration} onChange={(event) => setPauseDuration(clampNumber(Number(event.target.value), 0, 240))} />
+        </div>
+      </section>
+
+      <section className="planner-card">
+        <h2>Composer mon trajet</h2>
+        <p className="muted">Pour simuler “je prends l’autoroute, puis je sors sur départementale”. Les proportions sont normalisées automatiquement.</p>
+        <div className="grid three">
+          <NumberField label="Autoroute" value={motorwayShare} suffix="%" min={0} max={100} onChange={setMotorwayShare} />
+          <NumberField label="Départementale" value={roadShare} suffix="%" min={0} max={100} onChange={setRoadShare} />
+          <NumberField label="Route sinueuse" value={windingShare} suffix="%" min={0} max={100} onChange={setWindingShare} />
+        </div>
+        <div className="mix-presets">
+          <button type="button" onClick={() => { setMotorwayShare(80); setRoadShare(20); setWindingShare(0); }}>Surtout autoroute</button>
+          <button type="button" onClick={() => { setMotorwayShare(45); setRoadShare(45); setWindingShare(10); }}>Mixte</button>
+          <button type="button" onClick={() => { setMotorwayShare(10); setRoadShare(70); setWindingShare(20); }}>Départementale</button>
+          <button type="button" onClick={() => { setMotorwayShare(0); setRoadShare(45); setWindingShare(55); }}>Route sinueuse</button>
         </div>
       </section>
 

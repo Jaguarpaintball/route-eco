@@ -13,11 +13,13 @@ describe('Route Éco alternatives', () => {
       pauseCount: 1,
       pauseDurationMinutes: 15,
       manualTollCost: 28,
+      customMix: { motorway: 50, road: 40, winding: 10 },
     });
 
-    expect(routes.map((route) => route.name)).toEqual(['Rapide', 'Éco', 'Équilibré', 'Sans péage']);
+    expect(routes.map((route) => route.name)).toEqual(['Rapide', 'Éco', 'Équilibré', 'Sans péage', 'Mon trajet']);
     expect(routes[0].tollCost).toBe(28);
     expect(routes[3].tollCost).toBe(0);
+    expect(routes.find((route) => route.name === 'Mon trajet')?.tollCost).toBe(14);
     expect(routes.every((route) => route.globalScore >= 0 && route.globalScore <= 10)).toBe(true);
   });
 

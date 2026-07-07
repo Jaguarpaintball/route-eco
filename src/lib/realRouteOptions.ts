@@ -1,4 +1,5 @@
 import { RouteSummary, ScoredRoute, scoreRoutes, summarizeRoute } from './costModel';
+import { estimateMixedRouteDrivingMinutes, estimateMixedRouteTollCost, type RouteMix } from './routeMix';
 import type { RouteGeometry } from './routingService';
 
 export type RealRouteOptionInput = {
@@ -8,6 +9,9 @@ export type RealRouteOptionInput = {
   pauseCount: number;
   pauseDurationMinutes: number;
   manualTollCost: number;
+  motorwaySpeedKmh?: number;
+  roadSpeedKmh?: number;
+  customMix?: RouteMix;
 };
 
 export type ScoredRouteOption = ScoredRoute & {
@@ -63,6 +67,30 @@ export function buildScoredRouteOptions(input: RealRouteOptionInput): ScoredRout
       }),
     };
   });
+
+  if (input.customMix) {
+    const baseRoute = input.routes[0];
+    summariesWithGeometry.push({
+      sourceName: `${baseRoute.name} composé par l’utilisateur`,
+      coordinates: baseRoute.coordinates,
+      summary: summarizeRoute({
+        name: 'Mon trajet',
+        distanceKm: Math.round(baseRoute.distanceKm),
+        drivingMinutes: estimateMixedRouteDrivingMinutes({
+          distanceKm: baseRoute.distanceKm,
+          motorwaySpeedKmh: input.motorwaySpeedKmh ?? 120,
+          roadSpeedKmh: input.roadSpeedKmh ?? 80,
+          ...input.customMix,
+        }),
+        tollCost: estimateMixedRouteTollCost(input.manualTollCost, input.customMix),
+        consumptionLPer100Km: input.consumptionLPer100Km,
+        fuelPricePerLiter: input.fuelPricePerLiter,
+        pauseCount: input.pauseCount,
+        pauseDurationMinutes: input.pauseDurationMinutes,
+        comfortPenalty: input.customMix.winding > 35 ? 4 : 2,
+      }),
+    });
+  }
 
   const scored = scoreRoutes(summariesWithGeometry.map((item) => item.summary));
 

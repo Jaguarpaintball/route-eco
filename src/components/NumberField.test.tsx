@@ -1,9 +1,11 @@
 /** @vitest-environment jsdom */
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { NumberField } from './NumberField';
 
 describe('NumberField', () => {
+  afterEach(() => cleanup());
+
   it('lets the user clear the value before typing a new number', () => {
     const onChange = vi.fn();
 
@@ -29,5 +31,15 @@ describe('NumberField', () => {
 
     expect(input.value).toBe('115');
     expect(onChange).toHaveBeenLastCalledWith(115);
+  });
+
+  it('keeps typed values independent from preset buttons handled by the parent screen', () => {
+    const onChange = vi.fn();
+
+    render(<NumberField label="Autoroute max" value={95} suffix="km/h" min={70} max={140} onChange={onChange} />);
+
+    const input = screen.getByLabelText('Autoroute max') as HTMLInputElement;
+
+    expect(input.value).toBe('95');
   });
 });
